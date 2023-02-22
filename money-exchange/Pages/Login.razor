@@ -1,0 +1,79 @@
+﻿@page "/"
+@using System.ComponentModel.DataAnnotations;
+@using System.Security.Cryptography;
+@using System.Text;
+@inject IJSRuntime jsRuntime
+@inject NavigationManager navigationManager
+
+<EditForm Model="loginModel" OnValidSubmit="LoginClicked">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Korisničko ime:</label>
+        <InputText @bind-Value="loginModel.UserName" />
+    </div>
+    <div>
+        <label>Lozinka:</label>
+        <InputText @bind-Value="loginModel.Password" type="password" />
+    </div>
+    <button type="submit">Prijavi se</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+
+@code {
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "Korisničko ime je obavezno.")]
+        public string UserName { get; set; }
+
+        [Required(ErrorMessage = "Lozinka je obavezna.")]
+        public string Password { get; set; }
+    }
+
+    private LoginModel loginModel = new LoginModel();
+    private string ErrorMessage = "";
+
+    private async Task LoginClicked()
+    {
+    // Provjeri korisničko ime i lozinku
+        if (loginModel.UserName == "admin" && Hash(loginModel.Password.Trim()) == "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
+            
+{
+    // Spremanje informacije o prijavljenom korisniku u session storage
+    await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "user", "admin");
+
+    // Preusmjeravanje korisnika na drugu stranicu nakon uspješne prijave
+    navigationManager.NavigateTo("/tecajna-lista");
+}
+    else
+    {
+        ErrorMessage = "Krivo korisničko ime ili lozinka.";
+    }
+    }
+
+    private string Hash(string password)
+    {
+        using (var sha256 = SHA256.Create())
+        {
+            // Pretvaranje lozinke u niz byteova
+            var bytes = Encoding.UTF8.GetBytes(password);
+
+            // Generiranje hash vrijednosti
+            var hash = sha256.ComputeHash(bytes);
+
+            // Pretvaranje hash vrijednosti u string
+            var builder = new StringBuilder();
+            foreach (var b in hash)
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return builder.ToString();
+        }
+    }
+}
