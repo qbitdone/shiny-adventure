@@ -1,0 +1,128 @@
+﻿@page "/tecajna-lista"
+@using System.Net.Http
+@using System.Text.Json
+@using System.Threading.Tasks
+@inject IJSRuntime jsRuntime
+
+<h1>Tečajna lista</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Valuta</th>
+            <th>Kupovni tečaj</th>
+            <th>Srednji tečaj</th>
+            <th>Prodajni tečaj</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (exchangeRates != null)
+        {
+            @foreach (var rate in exchangeRates)
+            {
+                <tr>
+                    <td>@rate.valuta</td>
+                    <td>@rate.kupovni_tecaj</td>
+                    <td>@rate.srednji_tecaj</td>
+                    <td>@rate.prodajni_tecaj</td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<div>
+    <label>Unesite iznos u eurima:</label>
+    <input type="number" step="1" @bind-value="eurAmount" @oninput="CalculateAmounts" />
+</div>
+
+<div>
+    <label>PLN:</label>
+    <input type="text" @bind-value="plnAmount" disabled />
+</div>
+
+<div>
+    <label>USD:</label>
+    <input type="text" @bind-value="usdAmount" disabled />
+</div>
+
+@if (fetchError != null)
+{
+    <div class="alert alert-danger">@fetchError.Message</div>
+}
+
+
+@code {
+    private decimal eurAmount;
+    private decimal plnAmount;
+    private decimal usdAmount;
+    private decimal plnRate;
+    private decimal usdRate;
+    private Exception fetchError;
+
+    private List<ExchangeRate> exchangeRates;
+
+    private async Task LoadExchangeRates()
+    {
+        using (var client = new HttpClient())
+        {
+            try
+            {
+                // Dohvati podatke o tečajnoj listi
+                var response = await client.GetAsync("https://api.hnb.hr/tecajn-eur/v3?valuta=PLN&valuta=USD");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+
+                    // Deserijaliziraj JSON odgovor u objekt
+                    exchangeRates = JsonSerializer.Deserialize<List<ExchangeRate>>(content);
+
+                    plnRate = decimal.Parse(exchangeRates.FirstOrDefault(x => x.valuta == "PLN").srednji_tecaj.Replace(",", "."));
+                    usdRate = decimal.Parse(exchangeRates.FirstOrDefault(x => x.valuta == "USD").srednji_tecaj.Replace(",", "."));
+
+                }
+                else
+                {
+                    // Prikazi grešku ako dođe do problema prilikom dohvaćanja podataka
+                    Console.WriteLine($"Došlo je do problema prilikom dohvaćanja podataka o tečajnoj listi. Kod greške: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Došlo je do pogreške prilikom dohvaćanja podataka o tečajnoj listi: {ex.Message}");
+            }
+        }
+    }
+
+    private class ExchangeRatesResponse
+    {
+        public List<ExchangeRateItem> Items { get; set; }
+    }
+
+    private class ExchangeRateItem
+    {
+        public string valuta { get; set; }
+        public float srednji_tecaj { get; set; }
+    }
+
+    private async Task CalculateAmounts()
+    {
+        plnAmount = eurAmount * plnRate;
+        usdAmount = eurAmount * usdRate;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Dohvati podatke o tečajnoj listi prilikom učitavanja stranice
+        await LoadExchangeRates();
+    }
+
+    private class ExchangeRate
+    {
+        public string valuta { get; set; }
+        public string kupovni_tecaj { get; set; }
+        public string srednji_tecaj { get; set; }
+        public string prodajni_tecaj { get; set; }
+    }
+
+}
