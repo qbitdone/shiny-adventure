@@ -6,7 +6,7 @@ This is a simple web application built using Blazor and .NET 6. It provides exch
 
 ## How to run
 1. Clone this repository to your local machine
-2. Navigate to the project directory **cd MoneyExchange**
+2. Navigate to the project directory
 3. Run the command **dotnet run**
 4. Open your web browser and navigate to **https://localhost:5226/**
 
