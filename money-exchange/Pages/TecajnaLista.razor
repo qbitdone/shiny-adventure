@@ -33,7 +33,7 @@
 
 <div>
     <label>Unesite iznos u eurima:</label>
-    <input type="number" step="1" @bind-value="eurAmount" @oninput="CalculateAmounts" />
+    <input type="number" step="1" @bind-value="eurAmount" @oninput="@(new EventCallback<ChangeEventArgs>(this, CalculateAmounts))" />
 </div>
 
 <div>
@@ -83,7 +83,6 @@
                 }
                 else
                 {
-                    // Prikazi grešku ako dođe do problema prilikom dohvaćanja podataka
                     Console.WriteLine($"Došlo je do problema prilikom dohvaćanja podataka o tečajnoj listi. Kod greške: {response.StatusCode}");
                 }
             }
@@ -94,26 +93,19 @@
         }
     }
 
-    private class ExchangeRatesResponse
-    {
-        public List<ExchangeRateItem> Items { get; set; }
-    }
 
-    private class ExchangeRateItem
-    {
-        public string valuta { get; set; }
-        public float srednji_tecaj { get; set; }
-    }
 
-    private async Task CalculateAmounts()
+    private void CalculateAmounts(ChangeEventArgs e)
     {
-        plnAmount = eurAmount * plnRate;
-        usdAmount = eurAmount * usdRate;
+        if (decimal.TryParse(e.Value.ToString(), out decimal eur))
+        {
+            plnAmount = eur * plnRate;
+            usdAmount = eur * usdRate;
+        }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        // Dohvati podatke o tečajnoj listi prilikom učitavanja stranice
         await LoadExchangeRates();
     }
 
